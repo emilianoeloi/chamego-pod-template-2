@@ -4,7 +4,7 @@ Pod::Spec.new do |s|
   s.summary          = 'A short description of ${POD_NAME}.'
 
   s.description      = <<-DESC
-Codex Component ${POD_NAME}
+App Catalog ${POD_NAME}
                        DESC
 
   s.homepage         = 'https://github.com/${USER_NAME}/${POD_NAME}'
@@ -20,10 +20,6 @@ Codex Component ${POD_NAME}
   # s.resource_bundles = {
   #   '${POD_NAME}' => ['${POD_NAME}/Assets/*.png']
   # }
-
-  s.dependency("CodexCoreOnly", "~> 1.0.0-alpha.0")
-  s.dependency("CodexDesignSystem", "~> 1.0.0-alpha.0")
-
 
   # s.public_header_files = 'Pod/Classes/**/*.h'
   # s.frameworks = 'UIKit', 'MapKit'

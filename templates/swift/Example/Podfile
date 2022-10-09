@@ -16,8 +16,6 @@ install! 'cocoapods', :deterministic_uuids => false
 
 target '${POD_NAME}_Example' do
   pod '${POD_NAME}', :path => '../'
-  pod 'CodexDesignSystemG1', '~> 1.0.0-alpha.0'
-  # pod 'CodexDesignSystemCodex', :path => '../codex-design-system-codex'
 
   target '${POD_NAME}_Tests' do
     inherit! :search_paths
