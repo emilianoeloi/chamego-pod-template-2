@@ -1,0 +1,142 @@
+require 'date'
+
+default_platform(:ios)
+
+version = ''
+
+platform :ios do
+
+  projectFile = "${POD_NAME}"
+  project = projectFile.strip
+
+  # CONSTANTS
+  gitlab_repo = "https://github.com/emilianoeloi/guarapari.git"
+  global_repo = 'https://github.com/CocoaPods/Specs.git'
+  
+  workspace = "./Example/#{project}.xcworkspace"
+  xcodeproj = "./Example/#{project}.xcodeproj"
+  app_Target = "#{project}"
+  scheme = "#{project}-Example"
+
+  podfile_appQA = './Example/Podfile'
+  podspec_name = "./#{project}.podspec"
+  
+  report_files = './report-fastlane'
+  appIPA_path = './report-fastlane/Example.ipa'
+  appQA_Path = './report-fastlane/Example'
+  build_data_path = './fastlane/Build'
+  
+  # LANES HELPERS
+  is_running_on_ci = is_ci?
+
+  after_each() do |lane, _|
+    message = "Running lane `#{lane}` finished successfully! 🎉"
+    notification(message: message) unless is_running_on_ci
+  end
+
+  error() do |lane, exception, _|
+    message = "Running lane `#{lane}` finished with errors! ⛔️"
+    notification(message: "Exception: #{exception}", subtitle: message) unless is_running_on_ci
+  end
+
+  # SETUP PROJECT LANES
+
+  desc('Setup Project Configurations')
+  lane(:setup) do
+    cocoapods(
+      repo_update: true,
+      use_bundle_exec: true,
+      clean_install: true,
+      try_repo_update_on_error: true,
+      podfile: "./Example/"
+    )
+  end
+
+  # TEST
+  desc('Testar demo_i)S')
+  lane(:test) do
+    setup
+    scan(
+      workspace: workspace,
+      scheme: scheme,
+      clean: true,
+      code_coverage: false,
+      open_report: false,
+      configuration: "Debug",
+      device: "iPhone 11",
+      output_directory: "#{report_files}/run_test",        
+      skip_testing: ["Pods/*"],
+      skip_slack: false
+    )
+  end
+
+  # LINT
+  lane(:run_swiftlint) do 
+    swiftlint(
+      mode: :lint, 
+      executable: "./Example/Pods/SwiftLint/swiftlint",
+      config_file: "./Example/.swiftlint.yml", 
+      output_file: "./report-fastlane/lint/swiftlint-result.json",
+      reporter: "markdown",
+      raise_if_swiftlint_error: true,
+      ignore_exit_status: true
+    )
+  end
+
+  # LINT SDK
+  desc('Lint Project')
+  lane :lint do
+    sources = "#{gitlab_repo},#{global_repo}"
+    sh("cd .. && bundle exec pod spec lint --sources=#{sources} --verbose --allow-warnings")
+  end
+
+  # COVERAGE
+  desc('Coverage demo_iOS')
+  lane(:coverage) do
+    xcov(
+      workspace: workspace,
+      scheme: scheme,
+      ignore_file_path: "./.xcovignore",
+      output_directory: "#{report_files}/xcov",
+      html_report: true,
+      markdown_report: true
+    )
+  end
+
+  # DEPLOY SDK - SH
+  desc('Deploy Project')
+  lane :deploy do |option|
+    versionFile = File.read("../.versionPodspec")
+    version = versionFile.strip
+
+    projectFile = "${POD_NAME}"
+    project = projectFile.strip
+
+    version_bump_podspec(path: "./#{project}.podspec", version_number: version)
+    cocoapods(
+      use_bundle_exec: true,
+      clean_install: true,
+      try_repo_update_on_error: true,
+      podfile: "./Example/"
+    )
+    sh('git', 'commit', '-am', "Bump version #{version}" )
+    current_branch = git_branch()
+    push_to_git_remote(
+      remote: "origin",
+      remote_branch: current_branch, 
+      tags: false
+    )    
+
+    sh("git tag -a #{version} -m '#{version}'")
+    sh("git push origin #{version}")
+    puts("Subindo versão ... #{version}")
+    pod_push(
+      path: "#{project}.podspec",
+      repo: gitlab_repo,
+      sources: [gitlab_repo, global_repo],
+      allow_warnings: true,
+      verbose: true
+    )   
+  end
+
+end

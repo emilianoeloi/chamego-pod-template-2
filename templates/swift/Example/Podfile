@@ -1,0 +1,33 @@
+# Globo GitHub Specs Repository
+source('https://github.com/globoi/pods-repository.git')
+source('https://gitlab.globoi.com/native/pods-repository.git')
+
+# CocoaPods Global Specs Repository
+source('https://github.com/CocoaPods/Specs.git')
+
+# Bitmovin Spec Repository
+source ('https://github.com/bitmovin/cocoapod-specs.git')
+
+platform :ios, '12.1'
+
+use_frameworks!
+inhibit_all_warnings!
+install! 'cocoapods', :deterministic_uuids => false
+
+target '${POD_NAME}_Example' do
+  pod '${POD_NAME}', :path => '../'
+  pod 'CodexDesignSystemG1', '~> 1.0.0-alpha.0'
+  # pod 'CodexDesignSystemCodex', :path => '../codex-design-system-codex'
+
+  target '${POD_NAME}_Tests' do
+    inherit! :search_paths
+
+    ${INCLUDED_PODS}
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
+  end
+end
